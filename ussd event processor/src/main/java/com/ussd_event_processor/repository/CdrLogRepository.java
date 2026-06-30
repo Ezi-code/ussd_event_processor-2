@@ -10,4 +10,5 @@ import java.util.UUID;
  * Used to persist and retrieve metadata about CDR file processing.
  */
 public interface CdrLogRepository extends JpaRepository<CdrLog, UUID> {
+    boolean existsByFileName(String fileName);
 }

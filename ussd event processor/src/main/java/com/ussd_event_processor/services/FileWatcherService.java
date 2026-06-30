@@ -71,6 +71,15 @@ public class FileWatcherService {
 
         for (File file : files) {
             if (file.isFile()) {
+                if (cdrLogRepository.existsByFileName(file.getName())) {
+                    log.info("File {} already processed, moving to processed folder", file.getName());
+                    try {
+                        moveToProcessed(file);
+                    } catch (IOException e) {
+                        log.error("Failed to move already processed file: {}", file.getName(), e);
+                    }
+                    continue;
+                }
                 processFile(file);
             }
         }
@@ -82,7 +91,14 @@ public class FileWatcherService {
      *
      * @param file The CDR file to process.
      */
+    @Transactional
     public void processFile(File file) {
+
+        // Check if the file already exists in the cdr_log table
+        if (cdrLogRepository.existsByFileName(file.getName())) {
+            log.warn("Skipping file {}: already exists in cdr_log", file.getName());
+            return;
+        }
 
         LocalDateTime startTime = LocalDateTime.now();
         int successCount = 0;
@@ -118,6 +134,7 @@ public class FileWatcherService {
                 callDetailRepository.saveAll(batch);
             }
 
+            recordProcessingLog(file.getName(), startTime, successCount, failedCount);
             moveToProcessed(file);
             log.info("Successfully processed {}: {} records loaded, {} failed",
                     file.getName(), successCount, failedCount);
@@ -125,8 +142,6 @@ public class FileWatcherService {
         } catch (IOException e) {
             log.error("Error reading file: {}", file.getName(), e);
         }
-
-        recordProcessingLog(file.getName(), startTime, successCount, failedCount);
     }
 
     /**

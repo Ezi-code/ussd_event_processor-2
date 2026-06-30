@@ -25,7 +25,7 @@ public class CdrLog {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "file_name", nullable = false)
+    @Column(name = "file_name", nullable = false,  unique = true)
     private String fileName;
 
     @Column(name = "upload_start_time", nullable = false)

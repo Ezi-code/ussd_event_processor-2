@@ -34,3 +34,6 @@ build/
 .junie/
 .mvn.junie/
 .mvn/
+
+
+data/*/*.log
