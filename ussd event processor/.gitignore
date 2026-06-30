@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+.junie/
+.mvn.junie/
+.mvn/
