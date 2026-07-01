@@ -131,4 +131,6 @@ public class CallDetailRecord {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
+    public CallDetailRecord(String msisdn, LocalDateTime recordDate) {}
 }

@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>ussd_event_processor</artifactId>
+    <artifactId>ussd_event_processor-2</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>ussd event processor</name>
     <description>ussd event processor</description>
