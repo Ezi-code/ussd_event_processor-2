@@ -1,98 +1,128 @@
 # USSD Event Processor
 
-A high-performance Spring Boot service designed to ingest, parse, and store Call Detail Records (CDRs) from pipe-delimited log files into a PostgreSQL database.
+A Spring Boot service for ingesting, parsing, and querying Call Detail Records (CDRs) from pipe-delimited log files into PostgreSQL.
 
-## Key Features
+## Features
 
-- **Automated File Polling**: Periodically monitors a configured directory for new CDR files.
-- **Parallel Processing**: Utilizes a `ThreadPoolTaskExecutor` to process multiple files concurrently, maximizing throughput.
-- **Efficient Ingestion**:
-    - **Batch Processing**: Records are saved in batches (default: 1000) to minimize database round-trips.
-    - **Partial Commits**: Uses `Propagation.REQUIRES_NEW` for batch saves, ensuring that large files don't lock the database in a single long-running transaction and allowing partial progress if an error occurs.
-- **Robust Parsing**: Maps 33 distinct CDR fields using a dedicated `CdrMapper`, handling various data types and legacy timestamp formats.
-- **Duplicate Prevention**:
-    - **Application-level check**: Verifies if a file has already been processed by checking the `cdr_log` table.
-    - **Database-level integrity**: Enforces a unique constraint on the filename in the database.
-- **Automatic Archiving**: Moves successfully processed files to a dedicated folder to prevent re-ingestion.
-- **Audit Logging**: Maintains a detailed history of file processing in the `cdr_log` table, including success/failure counts and timestamps.
-- **Database Migrations**: Uses Flyway for version-controlled schema management.
+- **File Ingestion** — polls a configured watch folder, parses 33-field pipe-delimited CDR files, and batches inserts (1,000 records per batch).
+- **Async Processing** — multiple files processed concurrently via a `ThreadPoolTaskExecutor`.
+- **Duplicate Prevention** — checks `cdr_log` before processing; unique constraint on filename.
+- **Audit Logging** — per-file processing history with success/failure counts and timestamps.
+- **REST Query API** — `POST /api/cdrs/query` to search records by date range with optional MSISDN/IMSI filters.
+- **Swagger UI** — interactive API docs at `/swagger-ui/index.html`.
+- **Flyway Migrations** — version-controlled schema management.
 
 ## Architecture
 
-The application is built with:
-- **Java 21** & **Spring Boot 3**
-- **Spring Data JPA**: For database interactions.
-- **Hibernate**: For ORM and schema validation.
-- **Flyway**: For database migrations.
-- **Lombok**: To reduce boilerplate code.
-- **PostgreSQL**: Production database (H2 used for tests).
+- **Java 26**, **Spring Boot 4.1.0**
+- **Spring Data JPA + Hibernate**
+- **PostgreSQL**
+- **Flyway**
+- **Lombok**
+- **springdoc-openapi** (Swagger UI)
 
-### Core Components
+## REST API
 
-- **`FileWatcherService`**: The orchestrator. It polls the watch folder, initiates asynchronous file processing tasks, and manages file movement.
-- **`CdrMapper`**: Responsible for splitting pipe-delimited strings and converting them into `CallDetailRecord` entities.
-- **`UssdEventProcessorApplication`**: Configures the asynchronous thread pool and task executor.
+### Query CDR Records
+
+**Sample 1: Query by Date Range and Identifiers**
+
+```bash
+curl -X POST http://localhost:8080/api/cdrs/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "record_date_start": "2023-10-27 10:00:00,000",
+    "record_date_end": "2026-07-01",
+    "msisdn": "573103154393",
+    "imsi": "732101647793504"
+  }'
+```
+
+**Response:**
+```json
+[
+  {
+    "RECORD_DATE": "2023-10-27 10:00:00",
+    "MSISDN": "573103154393",
+    "IMSI": "732101647793504"
+  }
+]
+```
+
+**Sample 2: Query by Date Range only**
+
+```bash
+curl -X POST http://localhost:8080/api/cdrs/query \
+  -H "Content-Type: application/json" \
+  -d '{
+    "record_date_start": "2023-01-01",
+    "record_date_end": "2023-12-31"
+  }'
+```
+
+**Response:**
+```json
+[
+  {
+    "RECORD_DATE": "2023-10-27 10:00:00",
+    "MSISDN": "573103154393",
+    "IMSI": "732101647793504"
+  },
+  {
+    "RECORD_DATE": "2023-10-27 10:05:00",
+    "MSISDN": "573103154394",
+    "IMSI": "732101647793505"
+  }
+]
+```
+
+**Request fields:**
+- `record_date_start`, `record_date_end` — required; accepts 7 datetime formats (space-delimited with comma-millis, ISO 8601 with/without millis/Z, date-only).
+- `msisdn`, `imsi` — optional filters (omit or null to skip).
+
+Returns `400 Bad Request` if dates are missing or unparseable.
+
+Swagger UI available at `/swagger-ui/index.html`.
 
 ## Configuration
 
-Key settings in `src/main/resources/application.properties`:
-
 ```properties
-# Folder Configuration
 cdr.watch-folder=data/ussd/incoming
 cdr.processed-folder=data/ussd/processed
 cdr.poll-rate-ms=60000
 
-# Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5432/ussd_db
+spring.datasource.url=jdbc:postgresql://localhost:5432/ussd
 spring.datasource.username=postgres
-spring.datasource.password=password
-
-# Hibernate & Flyway
-spring.jpa.hibernate.ddl-auto=none
-spring.flyway.enabled=true
+spring.datasource.password=admin
 ```
 
 ## Database Schema
 
-### `call_detail_records`
-Stores the actual CDR data. Primary key is a `UUID`. Includes fields like:
-- `event_timestamp`
-- `msisdn`, `imsi`, `destination_msisdn`
-- `ussd_string`
-- `duration_ms`, `bytes_sent`, `bytes_received`
-- ... (Total 33 fields)
+### `ussd.call_detail_records`
+
+Stores parsed CDR data. Key columns: `record_date`, `msisdn`, `imsi`, `status`, `type`, `tstamp`, `transaction_id`, `dialog_duration`, `ussd_string`, and structured telecom addressing fields (`l_spc`, `l_ssn`, `r_spc`, `or_digits`, `de_digits`, `vlr_digits`, etc.). File tracking is handled by the `cdr_log` table.
 
 ### `cdr_log`
-Tracks file processing history.
-- `file_name` (Unique)
-- `upload_start_time`, `upload_end_time`
-- `records_loaded` (Success count)
-- `records_failed` (Failure count)
+
+Tracks file processing history: `file_name` (unique), `upload_start_time`, `upload_end_time`, `records_loaded`, `records_failed`.
 
 ## Getting Started
 
-### Prerequisites
-- JDK 21
-- Maven 3.x
-- PostgreSQL instance
-
-### Running the Application
-1. Configure your database credentials in `application.properties`.
-2. Ensure the `cdr.watch-folder` exists on your filesystem.
-3. Run the application:
+1. Ensure PostgreSQL is running and create the `ussd` database.
+2. Update credentials in `application.properties`.
+3. Ensure `data/ussd/incoming` and `data/ussd/processed` directories exist.
+4. Run:
    ```bash
    mvn spring-boot:run
    ```
+   Flyway applies migrations automatically on startup.
+
+Place `.log` files in `data/ussd/incoming` for automatic ingestion.
 
 ## Testing
 
-The project includes a comprehensive test suite:
-- **Unit Tests**: `CdrMapperTest` verifies parsing logic.
-- **Service Tests**: `FileWatcherServiceTest` mocks dependencies to test business logic.
-- **Integration Tests**: `FileProcessingIntegrationTest` uses an H2 in-memory database and temporary folders to simulate end-to-end file ingestion.
-
-Run all tests:
 ```bash
 mvn test
 ```
+
+Includes unit tests (`CdrMapperTest`, `DateTimeParserTest`), web layer tests (`CdrQueryControllerTest`, `OpenApiTest`), mock-based service tests (`FileWatcherServiceTest`), and integration tests (`FileProcessingIntegrationTest`, `DuplicateProcessingTest`).
