@@ -48,6 +48,5 @@ CREATE TABLE ussd.call_detail_records
     ussd_string      VARCHAR(255),
     transaction_id   VARCHAR(150) NOT NULL,
     created_at       TIMESTAMP WITHOUT TIME ZONE,
-    file_name        VARCHAR(255),
     CONSTRAINT pk_call_detail_records PRIMARY KEY (id)
 );

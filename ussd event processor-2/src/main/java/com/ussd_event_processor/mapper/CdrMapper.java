@@ -15,7 +15,7 @@ public class CdrMapper {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss,SSS");
 
-    public CallDetailRecord mapToEntity(String line, String fileName) {
+    public CallDetailRecord mapToEntity(String line) {
         String[] fields = line.split("\\|", -1);
 
         if (fields.length < 33) {
@@ -30,21 +30,20 @@ public class CdrMapper {
                 throw new IllegalArgumentException("Invalid tstamp: " + fields[0].trim());
             }
 
-            record.setServiceCode(fields[4].trim());
-            record.setOrDigits(fields[5].trim());
-            record.setDeDigits(fields[10].trim());
-            record.setUssdString(fields[11].trim());
-            record.setMsisdn(fields[14].trim());
-            record.setImsi(fields[17].trim());
-            record.setStatus(fields[25].trim());
-            record.setType(fields[26].trim());
+            record.setServiceCode(defaultString(fields[4]));
+            record.setOrDigits(defaultString(fields[5]));
+            record.setDeDigits(defaultString(fields[10]));
+            record.setUssdString(defaultString(fields[11]));
+            record.setMsisdn(defaultString(fields[14]));
+            record.setImsi(defaultString(fields[17]));
+            record.setStatus(defaultString(fields[25]));
+            record.setType(defaultString(fields[26]));
 
             LocalDateTime parsedRecordDate = parseTimestamp(fields[27].trim());
             record.setRecordDate(parsedRecordDate != null ? parsedRecordDate : record.getTstamp());
 
-            record.setDialogDuration(parseLong(fields[28]));
-            record.setTransactionId(fields[32].trim());
-            record.setFileName(fileName);
+            record.setDialogDuration(defaultLong(fields[28]));
+            record.setTransactionId(defaultString(fields[32]));
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to map fields", e);
@@ -70,5 +69,19 @@ public class CdrMapper {
 
     public Long parseLong(String value) {
         return value == null || value.trim().isEmpty() ? null : Long.parseLong(value.trim());
+    }
+
+    private Integer defaultInteger(String value) {
+        Integer parsed = parseInteger(value);
+        return parsed != null ? parsed : 0;
+    }
+
+    private Long defaultLong(String value) {
+        Long parsed = parseLong(value);
+        return parsed != null ? parsed : 0L;
+    }
+
+    private String defaultString(String value) {
+        return value == null || value.trim().isEmpty() ? "" : value.trim();
     }
 }

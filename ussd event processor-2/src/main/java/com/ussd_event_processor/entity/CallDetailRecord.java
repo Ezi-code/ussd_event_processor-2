@@ -120,13 +120,8 @@ public class CallDetailRecord {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "file_name", length = 255)
-    private String fileName;
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
-
-    public CallDetailRecord(String msisdn, LocalDateTime recordDate) {}
 }

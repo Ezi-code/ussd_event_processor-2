@@ -21,9 +21,8 @@ class CdrMapperTest {
     @Test
     void testMapToEntity_Success() {
         String line = "2023-10-27 10:00:00,000|1|2|3|SVCCode|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
-        String fileName = "test.log";
 
-        CallDetailRecord record = cdrMapper.mapToEntity(line, fileName);
+        CallDetailRecord record = cdrMapper.mapToEntity(line);
 
         assertThat(record).isNotNull();
         assertThat(record.getTstamp()).isEqualTo(LocalDateTime.of(2023, 10, 27, 10, 0, 0));
@@ -38,21 +37,38 @@ class CdrMapperTest {
         assertThat(record.getRecordDate()).isEqualTo(LocalDateTime.of(2023, 10, 27, 10, 5, 0));
         assertThat(record.getDialogDuration()).isEqualTo(100L);
         assertThat(record.getTransactionId()).isEqualTo("TXID");
-        assertThat(record.getFileName()).isEqualTo(fileName);
     }
 
     @Test
     void testMapToEntity_InvalidFieldCount() {
         String line = "too|few|fields";
-        assertThatThrownBy(() -> cdrMapper.mapToEntity(line, "test.log"))
+        assertThatThrownBy(() -> cdrMapper.mapToEntity(line))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid number of fields");
     }
 
     @Test
+    void testMapToEntity_DefaultsForEmptyFields() {
+        String line = "2023-10-27 10:00:00,000|||||||||||||||||||||||||||2023-10-27 10:05:00,000|||||";
+
+        CallDetailRecord record = cdrMapper.mapToEntity(line);
+
+        assertThat(record.getServiceCode()).isEqualTo("");
+        assertThat(record.getOrDigits()).isEqualTo("");
+        assertThat(record.getDeDigits()).isEqualTo("");
+        assertThat(record.getUssdString()).isEqualTo("");
+        assertThat(record.getMsisdn()).isEqualTo("");
+        assertThat(record.getImsi()).isEqualTo("");
+        assertThat(record.getStatus()).isEqualTo("");
+        assertThat(record.getType()).isEqualTo("");
+        assertThat(record.getTransactionId()).isEqualTo("");
+        assertThat(record.getDialogDuration()).isEqualTo(0L);
+    }
+
+    @Test
     void testMapToEntity_InvalidTimestamp() {
         String line = "not_a_timestamp|1|2|3|4|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
-        assertThatThrownBy(() -> cdrMapper.mapToEntity(line, "test.log"))
+        assertThatThrownBy(() -> cdrMapper.mapToEntity(line))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to map fields");
     }
