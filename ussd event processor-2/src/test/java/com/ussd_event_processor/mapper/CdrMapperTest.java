@@ -20,60 +20,55 @@ class CdrMapperTest {
 
     @Test
     void testMapToEntity_Success() {
-        String line = "2023-10-27 10:00:00,000|1|2|3|4|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
-        String fileName = "test.log";
+        String line = "2023-10-27 10:00:00,000|1|2|3|SVCCode|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
 
-        CallDetailRecord record = cdrMapper.mapToEntity(line, fileName);
+        CallDetailRecord record = cdrMapper.mapToEntity(line);
 
         assertThat(record).isNotNull();
-        assertThat(record.getEventTimestamp()).isEqualTo(LocalDateTime.of(2023, 10, 27, 10, 0, 0));
-        assertThat(record.getLac()).isEqualTo(1);
-        assertThat(record.getCellId()).isEqualTo(2);
-        assertThat(record.getEventType()).isEqualTo(3);
-        assertThat(record.getServiceType()).isEqualTo(4);
-        assertThat(record.getOriginatingMsisdn()).isEqualTo("MSISDN1");
-        assertThat(record.getOptionalField()).isEqualTo("OPT");
-        assertThat(record.getProtocolVersion()).isEqualTo(7);
-        assertThat(record.getStatusCode1()).isEqualTo(8);
-        assertThat(record.getStatusCode2()).isEqualTo(9);
-        assertThat(record.getDestinationMsisdn()).isEqualTo("DEST");
+        assertThat(record.getTstamp()).isEqualTo(LocalDateTime.of(2023, 10, 27, 10, 0, 0));
+        assertThat(record.getServiceCode()).isEqualTo("SVCCode");
+        assertThat(record.getOrDigits()).isEqualTo("MSISDN1");
+        assertThat(record.getDeDigits()).isEqualTo("DEST");
         assertThat(record.getUssdString()).isEqualTo("STR");
-        assertThat(record.getFlag1()).isEqualTo(12);
-        assertThat(record.getFlag2()).isEqualTo(13);
         assertThat(record.getMsisdn()).isEqualTo("MSISDN2");
-        assertThat(record.getFlag3()).isEqualTo(15);
-        assertThat(record.getMccMnc()).isEqualTo(16);
         assertThat(record.getImsi()).isEqualTo("IMSI");
-        assertThat(record.getFlag4()).isEqualTo(18);
-        assertThat(record.getFlag5()).isEqualTo(19);
-        assertThat(record.getThirdPartyMsisdn()).isEqualTo("3RD");
-        assertThat(record.getReserved1()).isEqualTo("R1");
-        assertThat(record.getReserved2()).isEqualTo("R2");
-        assertThat(record.getReserved3()).isEqualTo("R3");
-        assertThat(record.getReserved4()).isEqualTo("R4");
-        assertThat(record.getResult()).isEqualTo("RES");
-        assertThat(record.getSessionType()).isEqualTo("TYPE");
+        assertThat(record.getStatus()).isEqualTo("RES");
+        assertThat(record.getType()).isEqualTo("TYPE");
         assertThat(record.getRecordDate()).isEqualTo(LocalDateTime.of(2023, 10, 27, 10, 5, 0));
-        assertThat(record.getDurationMs()).isEqualTo(100L);
-        assertThat(record.getBytesSent()).isEqualTo(1000L);
-        assertThat(record.getBytesReceived()).isEqualTo(2000L);
-        assertThat(record.getMetrics()).isEqualTo("METRIC");
+        assertThat(record.getDialogDuration()).isEqualTo(100L);
         assertThat(record.getTransactionId()).isEqualTo("TXID");
-        assertThat(record.getFileName()).isEqualTo(fileName);
     }
 
     @Test
     void testMapToEntity_InvalidFieldCount() {
         String line = "too|few|fields";
-        assertThatThrownBy(() -> cdrMapper.mapToEntity(line, "test.log"))
+        assertThatThrownBy(() -> cdrMapper.mapToEntity(line))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid number of fields");
     }
 
     @Test
-    void testMapToEntity_MalformedInteger() {
-        String line = "2023-10-27 10:00:00,000|not_a_number|2|3|4|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
-        assertThatThrownBy(() -> cdrMapper.mapToEntity(line, "test.log"))
+    void testMapToEntity_DefaultsForEmptyFields() {
+        String line = "2023-10-27 10:00:00,000|||||||||||||||||||||||||||2023-10-27 10:05:00,000|||||";
+
+        CallDetailRecord record = cdrMapper.mapToEntity(line);
+
+        assertThat(record.getServiceCode()).isEqualTo("");
+        assertThat(record.getOrDigits()).isEqualTo("");
+        assertThat(record.getDeDigits()).isEqualTo("");
+        assertThat(record.getUssdString()).isEqualTo("");
+        assertThat(record.getMsisdn()).isEqualTo("");
+        assertThat(record.getImsi()).isEqualTo("");
+        assertThat(record.getStatus()).isEqualTo("");
+        assertThat(record.getType()).isEqualTo("");
+        assertThat(record.getTransactionId()).isEqualTo("");
+        assertThat(record.getDialogDuration()).isEqualTo(0L);
+    }
+
+    @Test
+    void testMapToEntity_InvalidTimestamp() {
+        String line = "not_a_timestamp|1|2|3|4|MSISDN1|OPT|7|8|9|DEST|STR|12|13|MSISDN2|15|16|IMSI|18|19|3RD|R1|R2|R3|R4|RES|TYPE|2023-10-27 10:05:00,000|100|1000|2000|METRIC|TXID";
+        assertThatThrownBy(() -> cdrMapper.mapToEntity(line))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to map fields");
     }

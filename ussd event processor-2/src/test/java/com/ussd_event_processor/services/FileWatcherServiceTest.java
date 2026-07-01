@@ -75,7 +75,7 @@ class FileWatcherServiceTest {
         CallDetailRecord record1 = new CallDetailRecord();
         CallDetailRecord record2 = new CallDetailRecord();
 
-        when(cdrMapper.mapToEntity(anyString(), eq(fileName))).thenReturn(record1, record2);
+        when(cdrMapper.mapToEntity(anyString())).thenReturn(record1, record2);
 
         fileWatcherService.processFile(filePath.toFile());
 
@@ -102,8 +102,8 @@ class FileWatcherServiceTest {
 
         CallDetailRecord record1 = new CallDetailRecord();
 
-        when(cdrMapper.mapToEntity("good", fileName)).thenReturn(record1);
-        when(cdrMapper.mapToEntity("bad", fileName)).thenThrow(new RuntimeException("Parsing failed"));
+        when(cdrMapper.mapToEntity("good")).thenReturn(record1);
+        when(cdrMapper.mapToEntity("bad")).thenThrow(new RuntimeException("Parsing failed"));
 
         fileWatcherService.processFile(filePath.toFile());
 

@@ -51,6 +51,48 @@ class CdrQueryControllerTest {
     }
 
     @Test
+    void queryByDateRangeOnlyIsoFormat() throws Exception {
+        var start = LocalDateTime.of(2023, 8, 18, 10, 30, 0);
+        var end = LocalDateTime.of(2023, 8, 18, 10, 31, 0);
+        var records = List.of(
+                new CdrQueryResponse(start, "573228550000", "1234567890")
+        );
+        when(repository.findRecords(eq(start), eq(end), eq(null), eq(null))).thenReturn(records);
+
+        mockMvc.perform(post("/api/cdrs/query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "record_date_start": "2023-08-18T10:30:00",
+                                    "record_date_end": "2023-08-18T10:31:00"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void queryByDateRangeOnlyIsoWithMillisAndZ() throws Exception {
+        var start = LocalDateTime.of(2023, 8, 18, 10, 30, 0);
+        var end = LocalDateTime.of(2023, 8, 18, 10, 31, 0);
+        var records = List.of(
+                new CdrQueryResponse(start, "573228550000", "1234567890")
+        );
+        when(repository.findRecords(eq(start), eq(end), eq(null), eq(null))).thenReturn(records);
+
+        mockMvc.perform(post("/api/cdrs/query")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "record_date_start": "2023-08-18T10:30:00.000Z",
+                                    "record_date_end": "2023-08-18T10:31:00.000Z"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
     void queryWithMsisdn() throws Exception {
         var start = LocalDateTime.of(2023, 8, 18, 10, 30, 0);
         var end = LocalDateTime.of(2023, 8, 18, 10, 31, 0);

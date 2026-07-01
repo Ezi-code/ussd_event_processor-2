@@ -125,7 +125,7 @@ public class FileWatcherService {
                 if (line.isBlank()) continue;
 
                 try {
-                    CallDetailRecord record = cdrMapper.mapToEntity(line, file.getName());
+                    CallDetailRecord record = cdrMapper.mapToEntity(line);
                     batch.add(record);
                     successCount++;
 
