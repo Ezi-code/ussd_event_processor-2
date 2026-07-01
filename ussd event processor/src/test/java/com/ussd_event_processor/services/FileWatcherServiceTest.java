@@ -36,6 +36,9 @@ class FileWatcherServiceTest {
     @Mock
     private CdrMapper cdrMapper;
 
+    @Mock
+    private org.springframework.context.ApplicationContext applicationContext;
+
     private FileWatcherService fileWatcherService;
 
     @TempDir
@@ -51,7 +54,8 @@ class FileWatcherServiceTest {
         Files.createDirectories(watchFolder);
         Files.createDirectories(processedFolder);
 
-        fileWatcherService = new FileWatcherService(callDetailRepository, cdrLogRepository, cdrMapper);
+        fileWatcherService = new FileWatcherService(callDetailRepository, cdrLogRepository, cdrMapper, applicationContext);
+        lenient().when(applicationContext.getBean(FileWatcherService.class)).thenReturn(fileWatcherService);
         ReflectionTestUtils.setField(fileWatcherService, "watchFolder", watchFolder.toString());
         ReflectionTestUtils.setField(fileWatcherService, "processedFolder", processedFolder.toString());
     }
