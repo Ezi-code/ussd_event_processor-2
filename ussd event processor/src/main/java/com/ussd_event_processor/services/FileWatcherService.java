@@ -7,8 +7,11 @@ import com.ussd_event_processor.repository.CallDetailRecordRepository;
 import com.ussd_event_processor.repository.CdrLogRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
@@ -43,13 +46,16 @@ public class FileWatcherService {
     private final CallDetailRecordRepository callDetailRepository;
     private final CdrLogRepository cdrLogRepository;
     private final CdrMapper cdrMapper;
+    private final ApplicationContext applicationContext;
 
     public FileWatcherService(CallDetailRecordRepository callDetailRepository,
                               CdrLogRepository cdrLogRepository,
-                              CdrMapper cdrMapper) {
+                              CdrMapper cdrMapper,
+                              ApplicationContext applicationContext) {
         this.callDetailRepository = callDetailRepository;
         this.cdrLogRepository = cdrLogRepository;
         this.cdrMapper = cdrMapper;
+        this.applicationContext = applicationContext;
     }
 
     /**
@@ -80,18 +86,21 @@ public class FileWatcherService {
                     }
                     continue;
                 }
-                processFile(file);
+                // Use applicationContext to call the @Async method through the proxy
+                applicationContext.getBean(FileWatcherService.class).processFile(file);
             }
         }
     }
 
     /**
-     * Processes a single CDR file.
+     * Processes a single CDR file asynchronously.
      * Reads the file line by line, maps each line to an entity, and saves them in batches.
+     * Each batch is saved in a new transaction to allow partial commits.
      *
      * @param file The CDR file to process.
      */
-    @Transactional
+    @Async("cdrTaskExecutor")
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processFile(File file) {
 
         // Check if the file already exists in the cdr_log table
@@ -121,7 +130,7 @@ public class FileWatcherService {
                     successCount++;
 
                     if (batch.size() >= 1000) {
-                        callDetailRepository.saveAll(batch);
+                        applicationContext.getBean(FileWatcherService.class).saveBatch(batch);
                         batch.clear();
                     }
                 } catch (Exception e) {
@@ -131,7 +140,7 @@ public class FileWatcherService {
             }
 
             if (!batch.isEmpty()) {
-                callDetailRepository.saveAll(batch);
+                applicationContext.getBean(FileWatcherService.class).saveBatch(batch);
             }
 
             recordProcessingLog(file.getName(), startTime, successCount, failedCount);
@@ -142,6 +151,17 @@ public class FileWatcherService {
         } catch (IOException e) {
             log.error("Error reading file: {}", file.getName(), e);
         }
+    }
+
+    /**
+     * Saves a batch of records in a new transaction.
+     * This allows partial commits of a large file.
+     *
+     * @param batch The batch of records to save.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveBatch(List<CallDetailRecord> batch) {
+        callDetailRepository.saveAll(batch);
     }
 
     /**

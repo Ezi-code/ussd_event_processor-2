@@ -13,8 +13,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -60,9 +62,12 @@ public class FileProcessingIntegrationTest {
 
         fileWatcherService.pollFolder();
 
-        assertThat(cdrLogRepository.count()).isEqualTo(1);
-        assertThat(cdrRepository.count()).isEqualTo(2);
-        assertThat(Files.exists(processedFolder.resolve(fileName))).isTrue();
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
+            assertThat(cdrLogRepository.count()).isEqualTo(1);
+            assertThat(cdrRepository.count()).isEqualTo(2);
+            assertThat(Files.exists(processedFolder.resolve(fileName))).isTrue();
+        });
+
         assertThat(Files.exists(watchFolder.resolve(fileName))).isFalse();
     }
 }
