@@ -5,10 +5,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Entity representing a Call Detail Record (CDR) for USSD events.
- * Maps to the {@code call_detail_records} table in the {@code ussd} schema.
- */
 @Entity
 @Table(name = "call_detail_records", schema = "ussd")
 @Getter
@@ -22,103 +18,103 @@ public class CallDetailRecord {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "event_timestamp")
-    private LocalDateTime eventTimestamp;
-
-    @Column(name = "lac")
-    private Integer lac;
-
-    @Column(name = "cell_id")
-    private Integer cellId;
-
-    @Column(name = "event_type")
-    private Integer eventType;
-
-    @Column(name = "service_type")
-    private Integer serviceType;
-
-    @Column(name = "originating_msisdn", length = 20)
-    private String originatingMsisdn;
-
-    @Column(name = "optional_field", length = 50)
-    private String optionalField; // Not sure of the name of this field
-
-    @Column(name = "protocol_version")
-    private Integer protocolVersion;
-
-    @Column(name = "status_code1")
-    private Integer statusCode1;
-
-    @Column(name = "status_code2")
-    private Integer statusCode2;
-
-    @Column(name = "destination_msisdn", length = 20)
-    private String destinationMsisdn;
-
-    @Column(name = "ussd_string", length = 50)
-    private String ussdString;
-
-    @Column(name = "flag1")
-    private Integer flag1;
-
-    @Column(name = "flag2")
-    private Integer flag2;
-
-    @Column(name = "msisdn", length = 20, nullable = false)           // Key for Query API
-    private String msisdn;
-
-    @Column(name = "flag3")
-    private Integer flag3;
-
-    @Column(name = "mcc_mnc")
-    private Integer mccMnc;
-
-    @Column(name = "imsi", length = 20, nullable = false)             // Key for Query API
-    private String imsi;
-
-    @Column(name = "flag4")
-    private Integer flag4;
-
-    @Column(name = "flag5")
-    private Integer flag5;
-
-    @Column(name = "third_party_msisdn", length = 20)
-    private String thirdPartyMsisdn;
-
-    @Column(name = "reserved1", length = 255)
-    private String reserved1;
-
-    @Column(name = "reserved2", length = 255)
-    private String reserved2;
-
-    @Column(name = "reserved3", length = 255)
-    private String reserved3;
-
-    @Column(name = "reserved4", length = 255)
-    private String reserved4;
-
-    @Column(name = "result", length = 255)
-    private String result;
-
-    @Column(name = "session_type", length = 20)
-    private String sessionType;
-
-    @Column(name = "record_date", nullable = false) // Key for Query API
+    @Column(name = "record_date", nullable = false)
     private LocalDateTime recordDate;
 
-    @Column(name = "duration_ms")
-    private Long durationMs;
+    @Column(name = "l_spc")
+    private Integer lSpc;
 
-    @Column(name = "bytes_sent")
-    private Long bytesSent;
+    @Column(name = "l_ssn")
+    private Integer lSsn;
 
-    @Column(name = "bytes_received")
-    private Long bytesReceived;
+    @Column(name = "l_ri")
+    private Integer lRi;
 
-    @Column(name = "metrics", length = 255)
-    private String metrics;
+    @Column(name = "l_gt_i")
+    private Integer lGtI;
 
-    @Column(name = "transaction_id", length = 255)
+    @Column(name = "l_gt_digits", length = 18)
+    private String lGtDigits;
+
+    @Column(name = "r_spc")
+    private Integer rSpc;
+
+    @Column(name = "r_ssn")
+    private Integer rSsn;
+
+    @Column(name = "r_ri")
+    private Integer rRi;
+
+    @Column(name = "r_gt_i")
+    private Integer rGtI;
+
+    @Column(name = "r_gt_digits", length = 18)
+    private String rGtDigits;
+
+    @Column(name = "service_code", length = 50)
+    private String serviceCode;
+
+    @Column(name = "or_nature")
+    private Integer orNature;
+
+    @Column(name = "or_plan")
+    private Integer orPlan;
+
+    @Column(name = "or_digits", length = 18)
+    private String orDigits;
+
+    @Column(name = "de_nature")
+    private Integer deNature;
+
+    @Column(name = "de_plan")
+    private Integer dePlan;
+
+    @Column(name = "de_digits", length = 18)
+    private String deDigits;
+
+    @Column(name = "isdn_nature")
+    private Integer isdnNature;
+
+    @Column(name = "isdn_plan")
+    private Integer isdnPlan;
+
+    @Column(name = "msisdn", length = 18)
+    private String msisdn;
+
+    @Column(name = "vlr_nature")
+    private Integer vlrNature;
+
+    @Column(name = "vlr_plan")
+    private Integer vlrPlan;
+
+    @Column(name = "vlr_digits", length = 18)
+    private String vlrDigits;
+
+    @Column(name = "imsi", length = 100)
+    private String imsi;
+
+    @Column(name = "status", nullable = false, length = 30)
+    private String status;
+
+    @Column(name = "type", nullable = false, length = 30)
+    private String type;
+
+    @Column(name = "tstamp", nullable = false)
+    private LocalDateTime tstamp;
+
+    @Column(name = "local_dialog_id")
+    private Long localDialogId;
+
+    @Column(name = "remote_dialog_id")
+    private Long remoteDialogId;
+
+    @Column(name = "dialog_duration")
+    private Long dialogDuration;
+
+    @Column(name = "ussd_string", length = 255)
+    private String ussdString;
+
+    @Column(name = "transaction_id", nullable = false, length = 150)
     private String transactionId;
 
     @Column(name = "created_at", updatable = false)

@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
@@ -63,11 +65,12 @@ class DuplicateProcessingTest {
             writer.write(cdrLine);
         }
 
-        // 2. Process it once
+        // 2. Process it once (async - wait for completion)
         fileWatcherService.processFile(file);
-
-        assertEquals(1, cdrRepository.count(), "Should have 1 record after first processing");
-        assertEquals(1, cdrLogRepository.count(), "Should have 1 log after first processing");
+        await().atMost(10, SECONDS).untilAsserted(() -> {
+            assertEquals(1, cdrRepository.count(), "Should have 1 record after first processing");
+            assertEquals(1, cdrLogRepository.count(), "Should have 1 log after first processing");
+        });
 
         // 3. Put it back in watch folder
         File file2 = new File(watchFolder, uniqueFileName);
@@ -77,11 +80,12 @@ class DuplicateProcessingTest {
             }
         }
 
-        // 4. Process it again
+        // 4. Process it again (async - wait for completion)
         fileWatcherService.processFile(file2);
-
-        assertEquals(1, cdrRepository.count(), "Should STILL have only 1 record after duplicate processing");
-        assertEquals(1, cdrLogRepository.count(), "Should STILL have only 1 log after duplicate processing");
+        await().atMost(10, SECONDS).untilAsserted(() -> {
+            assertEquals(1, cdrRepository.count(), "Should STILL have only 1 record after duplicate processing");
+            assertEquals(1, cdrLogRepository.count(), "Should STILL have only 1 log after duplicate processing");
+        });
 
         Files.deleteIfExists(file2.toPath());
         Files.deleteIfExists(Paths.get(processedFolder, uniqueFileName));
